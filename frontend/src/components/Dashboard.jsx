@@ -3,9 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import ImageUpload from './ImageUpload';
+import ProfileForm from './ProfileForm';
+import PasswordChangeForm from './PasswordChangeForm';
 
 export default function Dashboard() {
-  const { user, logout, uploadAvatar } = useAuth();
+  const { user, logout, uploadAvatar, updateProfile, changePassword } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
   const [showTaskForm, setShowTaskForm] = useState(false);
 
@@ -137,27 +139,18 @@ export default function Dashboard() {
 
               <div className="border-t pt-6">
                 <h4 className="text-lg font-semibold text-gray-800 mb-4">Profile Information</h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                    <input
-                      type="text"
-                      defaultValue={user?.name || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input
-                      type="email"
-                      defaultValue={user?.email || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Update Profile
-                  </button>
-                </div>
+                <ProfileForm
+                  user={user}
+                  onUpdate={updateProfile}
+                  onCancel={() => {}}
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">Change Password</h4>
+                <PasswordChangeForm
+                  onPasswordChange={changePassword}
+                />
               </div>
             </div>
           </div>

@@ -54,21 +54,38 @@ const proxy = (serviceUrl, basePath) => async (req, res) => {
     // Handle multipart form data for file uploads
     let data;
     if (req.file) {
+      console.log('Gateway: Processing file upload');
+      console.log('File info:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+      
+      // Create FormData for file upload
+      const FormData = require('form-data');
       const formData = new FormData();
       formData.append('avatar', req.file.buffer, {
         filename: req.file.originalname,
         contentType: req.file.mimetype
       });
       data = formData;
-      headers['Content-Type'] = 'multipart/form-data';
+      // Don't set Content-Type header, let FormData set it with boundary
+      delete headers['Content-Type'];
+      // Also remove other headers that might interfere
+      delete headers['content-length'];
+      delete headers['Content-Length'];
     } else {
       data = req.body;
     }
     
+    console.log('Gateway: Forwarding to:', url);
     const response = await axios({ url, method, headers, data, responseType: 'json' });
+    console.log('Gateway: Response status:', response.status);
     res.status(response.status).json(response.data);
   } catch (err) {
+    console.error('Gateway error:', err.message);
     if (err.response) {
+      console.error('Response error:', err.response.status, err.response.data);
       res.status(err.response.status).json(err.response.data);
     } else {
       res.status(500).json({ message: 'Gateway error', error: err.message });
@@ -84,6 +101,7 @@ app.post('/api/auth/login', proxy(AUTH_SERVICE_URL, '/api/auth/login'));
 app.get('/api/auth/profile', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile'));
 app.put('/api/auth/profile', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile'));
 app.post('/api/auth/profile/avatar', auth, upload.single('avatar'), proxy(AUTH_SERVICE_URL, '/api/auth/profile/avatar'));
+app.put('/api/auth/profile/password', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile/password'));
 
 // Proxy /api/tasks routes to task-service (all require auth)
 app.use('/api/tasks', auth, proxy(TASK_SERVICE_URL, '/api/tasks'));

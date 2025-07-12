@@ -37,3 +37,29 @@ export const uploadAvatarAPI = async (formData, token) => {
   if (!res.ok) throw new Error('Avatar upload failed');
   return await res.json();
 };
+
+export const updateProfileAPI = async (profileData, token) => {
+  const res = await fetch(`${API_BASE}/api/auth/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+  if (!res.ok) throw new Error('Profile update failed');
+  return await res.json();
+};
+
+export const changePasswordAPI = async (passwordData, token) => {
+  const res = await fetch(`${API_BASE}/api/auth/profile/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(passwordData),
+  });
+  if (!res.ok) throw new Error('Password change failed');
+  return await res.json();
+};

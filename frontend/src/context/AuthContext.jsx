@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { loginAPI, registerAPI, getProfileAPI, uploadAvatarAPI } from '../api/auth';
+import { loginAPI, registerAPI, getProfileAPI, uploadAvatarAPI, updateProfileAPI, changePasswordAPI } from '../api/auth';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -47,8 +47,24 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  const updateProfile = async (profileData) => {
+    if (!token) throw new Error('No authentication token');
+    const result = await updateProfileAPI(profileData, token);
+    // Update user with new profile data
+    const updatedUser = { ...user, ...result.user };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    return result;
+  };
+
+  const changePassword = async (passwordData) => {
+    if (!token) throw new Error('No authentication token');
+    const result = await changePasswordAPI(passwordData, token);
+    return result;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, getProfile, uploadAvatar, error }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, getProfile, uploadAvatar, updateProfile, changePassword, error }}>
       {children}
     </AuthContext.Provider>
   );
