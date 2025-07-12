@@ -1,0 +1,79 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27018:27017"   # <--- Host:Container
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - '7381:6379'
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    restart: always
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - '5001:5001'
+    networks:
+      - backend
+
+  task-service:
+    build: ./task-service
+    container_name: task-service
+    restart: always
+    env_file:
+      - ./task-service/.env
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - '5002:5002'
+    networks:
+      - backend
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    restart: always
+    env_file:
+      - ./gateway/.env
+    depends_on:
+      - auth-service
+      - task-service
+    ports:
+      - '5050:5050'
+    networks:
+      - backend
+      - frontend
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - gateway
+    ports:
+      - '3000:3000'
+    networks:
+      - frontend
+
+volumes:
+  mongo_data:
+
+networks:
+  backend:
+  frontend:

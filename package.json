@@ -1,0 +1,19 @@
+{
+  "name": "indianic-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "cd gateway && npm install && cd ../auth-service && npm install && cd ../task-service && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:task\" \"npm run dev:frontend\"",
+    "dev:gateway": "cd gateway && npm start",
+    "dev:auth": "cd auth-service && npm start",
+    "dev:task": "cd task-service && npm start",
+    "dev:frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
+}
