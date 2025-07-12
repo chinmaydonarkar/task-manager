@@ -1,44 +1,86 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export const fetchTasks = async (token) => {
+  console.log('Fetching tasks from:', `${API_BASE}/api/tasks`);
   const res = await fetch(`${API_BASE}/api/tasks`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
   });
-  if (!res.ok) throw new Error('Fetch tasks failed');
-  return await res.json();
+  console.log('Fetch tasks response status:', res.status);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Fetch tasks error:', errorText);
+    throw new Error('Fetch tasks failed');
+  }
+  const data = await res.json();
+  console.log('Fetch tasks response data:', data);
+  return data;
 };
 
 export const createTask = async (task, token) => {
+  console.log('Creating task at:', `${API_BASE}/api/tasks`);
   const res = await fetch(`${API_BASE}/api/tasks`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
-    body: JSON.stringify(task),
+    body: task, // task is already FormData
   });
-  if (!res.ok) throw new Error('Create task failed');
-  return await res.json();
+  console.log('Create task response status:', res.status);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Create task error:', errorText);
+    throw new Error('Create task failed');
+  }
+  const data = await res.json();
+  console.log('Create task response data:', data);
+  return data;
 };
 
 export const updateTask = async (id, updates, token) => {
+  console.log('Updating task at:', `${API_BASE}/api/tasks/${id}`);
   const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
-    body: JSON.stringify(updates),
+    body: updates, // updates is already FormData
   });
-  if (!res.ok) throw new Error('Update task failed');
-  return await res.json();
+  console.log('Update task response status:', res.status);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Update task error:', errorText);
+    throw new Error('Update task failed');
+  }
+  const data = await res.json();
+  console.log('Update task response data:', data);
+  return data;
 };
 
 export const deleteTask = async (id, token) => {
+  console.log('Deleting task at:', `${API_BASE}/api/tasks/${id}`);
   const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
   });
-  if (!res.ok) throw new Error('Delete task failed');
-  return await res.json();
+  console.log('Delete task response status:', res.status);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Delete task error:', errorText);
+    throw new Error('Delete task failed');
+  }
+  const data = await res.json();
+  console.log('Delete task response data:', data);
+  return data;
 };

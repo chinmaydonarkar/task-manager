@@ -11,7 +11,7 @@ const fileSchema = new mongoose.Schema({
 const taskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String },
-  status: { type: String, enum: ['pending', 'in_progress', 'completed'], default: 'pending' },
+  status: { type: String, enum: ['Pending', 'Completed'], default: 'Pending' },
   dueDate: { type: Date },
   files: [fileSchema],
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

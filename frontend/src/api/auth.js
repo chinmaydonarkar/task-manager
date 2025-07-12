@@ -22,7 +22,11 @@ export const loginAPI = async (email, password) => {
 
 export const getProfileAPI = async (token) => {
   const res = await fetch(`${API_BASE}/api/auth/profile`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
   });
   if (!res.ok) throw new Error('Profile fetch failed');
   return await res.json();

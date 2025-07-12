@@ -8,7 +8,12 @@ require('dotenv').config();
 const auth = require('./middlewares/auth');
 
 // Configure multer for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max
+  }
+});
 
 const app = express();
 
@@ -17,7 +22,7 @@ const corsOptions = {
   origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Pragma']
 };
 
 app.use(cors(corsOptions));
@@ -53,21 +58,39 @@ const proxy = (serviceUrl, basePath) => async (req, res) => {
     
     // Handle multipart form data for file uploads
     let data;
-    if (req.file) {
+    if (req.file || req.files) {
       console.log('Gateway: Processing file upload');
-      console.log('File info:', {
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      });
       
       // Create FormData for file upload
       const FormData = require('form-data');
       const formData = new FormData();
-      formData.append('avatar', req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype
+      
+      // Handle single file (avatar) or multiple files (tasks)
+      if (req.file) {
+        console.log('File info:', {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+        formData.append('avatar', req.file.buffer, {
+          filename: req.file.originalname,
+          contentType: req.file.mimetype
+        });
+      } else if (req.files) {
+        console.log('Multiple files:', req.files.length);
+        req.files.forEach(file => {
+          formData.append('files', file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype
+          });
+        });
+      }
+      
+      // Add other form fields
+      Object.keys(req.body).forEach(key => {
+        formData.append(key, req.body[key]);
       });
+      
       data = formData;
       // Don't set Content-Type header, let FormData set it with boundary
       delete headers['Content-Type'];
@@ -79,7 +102,16 @@ const proxy = (serviceUrl, basePath) => async (req, res) => {
     }
     
     console.log('Gateway: Forwarding to:', url);
-    const response = await axios({ url, method, headers, data, responseType: 'json' });
+    const response = await axios({ 
+      url, 
+      method, 
+      headers, 
+      data, 
+      responseType: 'json',
+      validateStatus: function (status) {
+        return status >= 200 && status < 500; // Accept all 2xx, 3xx, and 4xx status codes
+      }
+    });
     console.log('Gateway: Response status:', response.status);
     res.status(response.status).json(response.data);
   } catch (err) {
@@ -104,6 +136,8 @@ app.post('/api/auth/profile/avatar', auth, upload.single('avatar'), proxy(AUTH_S
 app.put('/api/auth/profile/password', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile/password'));
 
 // Proxy /api/tasks routes to task-service (all require auth)
+app.post('/api/tasks', auth, upload.array('files'), proxy(TASK_SERVICE_URL, '/api/tasks'));
+app.put('/api/tasks/:id', auth, upload.array('files'), proxy(TASK_SERVICE_URL, '/api/tasks'));
 app.use('/api/tasks', auth, proxy(TASK_SERVICE_URL, '/api/tasks'));
 
 module.exports = app; 

@@ -1,8 +1,18 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchTasks, createTask, updateTask, deleteTask } from '../api/tasks';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './AuthContext';
 
-export const useTasks = () => {
+const TaskContext = createContext();
+
+export const useTaskContext = () => {
+  const context = useContext(TaskContext);
+  if (!context) {
+    throw new Error('useTaskContext must be used within a TaskProvider');
+  }
+  return context;
+};
+
+export const TaskProvider = ({ children }) => {
   const { token } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +43,7 @@ export const useTasks = () => {
       const result = await createTask(task, token);
       console.log('Task created:', result);
       
-      // Immediately add the new task to the state without loading
+      // Immediately add the new task to the state
       setTasks(prevTasks => [result, ...prevTasks]);
       
     } catch (err) {
@@ -74,7 +84,7 @@ export const useTasks = () => {
     }
   };
 
-  return {
+  const value = {
     tasks,
     loading,
     error,
@@ -83,4 +93,10 @@ export const useTasks = () => {
     deleteTask: handleDeleteTask,
     reload: loadTasks,
   };
-};
+
+  return (
+    <TaskContext.Provider value={value}>
+      {children}
+    </TaskContext.Provider>
+  );
+}; 
