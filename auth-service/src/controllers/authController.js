@@ -1,9 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const redis = require('../config/redis');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
+const { processImage, deleteImage } = require('../utils/imageProcessor');
 
 const signToken = (user) => {
   return jwt.sign(
@@ -141,27 +139,23 @@ exports.uploadAvatar = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(__dirname, '../../uploads/avatars');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    // Delete old avatar if exists
+    if (user.avatar) {
+      const oldFilename = user.avatar.split('/').pop();
+      deleteImage(oldFilename);
     }
 
-    // Generate unique filename
-    const filename = `${user._id}_${Date.now()}.jpg`;
-    const filepath = path.join(uploadDir, filename);
-
-    // Resize and save image
-    await sharp(req.file.buffer)
-      .resize(200, 200)
-      .jpeg({ quality: 90 })
-      .toFile(filepath);
+    // Process and save new image
+    const { url } = await processImage(req.file.buffer, req.file.originalname, 200, 200);
 
     // Update user avatar
-    user.avatar = `/uploads/avatars/${filename}`;
+    user.avatar = url;
     await user.save();
 
-    res.json({ avatar: user.avatar });
+    res.json({ 
+      avatar: user.avatar,
+      message: 'Avatar uploaded successfully'
+    });
   } catch (err) {
     console.error('Upload avatar error:', err);
     res.status(500).json({ message: 'Failed to upload avatar', error: err.message });

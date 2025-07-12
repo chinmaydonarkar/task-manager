@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
 const { Parser } = require('json2csv');
-const { emitTaskCreated, emitTaskUpdated } = require('../sockets/socket');
 
 exports.createTask = async (req, res) => {
   try {
@@ -41,7 +40,6 @@ exports.createTask = async (req, res) => {
       `Your task "${title}" has been created!`,
       `<p>Your task <b>${title}</b> has been created!</p>`
     );
-    emitTaskCreated(task);
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ message: 'Failed to create task', error: err.message });
@@ -86,7 +84,6 @@ exports.updateTask = async (req, res) => {
         `<p>Your task <b>${task.title}</b> is completed!</p>`
       );
     }
-    emitTaskUpdated(task);
     res.json(task);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update task', error: err.message });
