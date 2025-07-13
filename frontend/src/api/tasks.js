@@ -17,7 +17,7 @@ export const fetchTasks = async (token) => {
   }
   const data = await res.json();
   console.log('Fetch tasks response data:', data);
-  return data;
+  return Array.isArray(data) ? data : (data.data || []); // Return array of tasks
 };
 
 export const createTask = async (task, token) => {
@@ -39,7 +39,7 @@ export const createTask = async (task, token) => {
   }
   const data = await res.json();
   console.log('Create task response data:', data);
-  return data;
+  return data.data || data; // Return the task data from the response
 };
 
 export const updateTask = async (id, updates, token) => {
@@ -61,7 +61,7 @@ export const updateTask = async (id, updates, token) => {
   }
   const data = await res.json();
   console.log('Update task response data:', data);
-  return data;
+  return data.data || data; // Return the task data from the response
 };
 
 export const deleteTask = async (id, token) => {

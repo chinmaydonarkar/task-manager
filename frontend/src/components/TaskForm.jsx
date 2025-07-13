@@ -3,6 +3,7 @@ import { useTaskContext } from '../context/TaskContext';
 
 export default function TaskForm({ task = null, isEditing = false, onSuccess }) {
   const { createTask, updateTask } = useTaskContext();
+  
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [status, setStatus] = useState(task?.status || 'Pending');
@@ -65,9 +66,21 @@ export default function TaskForm({ task = null, isEditing = false, onSuccess }) 
 
       if (isEditing) {
         console.log('Updating task:', task._id);
+        
+        if (!task._id) {
+          throw new Error('Task ID is missing. Cannot update task.');
+        }
+        
         await updateTask(task._id, formData);
         console.log('Task updated successfully');
         setSuccess(true);
+        
+        // Auto-close edit form after successful update
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 1500); // Show success message for 1.5 seconds before closing
       } else {
         console.log('Creating new task...');
         await createTask(formData);

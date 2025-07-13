@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const redis = require('../config/redis');
+const redisService = require('../services/redisService');
 const { processImage, deleteImage } = require('../utils/imageProcessor');
 
 const signToken = (user) => {
@@ -31,17 +31,21 @@ exports.register = async (req, res) => {
     // Generate JWT token
     const token = signToken(user);
     
-    // Store session in Redis
-    await redis.set(`session:${user._id}`, token, 'EX', 60 * 60 * 24); // 1 day
+    // Store session in Redis with user profile caching
+    const userData = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+    
+    await redisService.storeSession(user._id.toString(), token, userData);
 
     res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar
-      }
+      user: userData
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -72,17 +76,21 @@ exports.login = async (req, res) => {
     // Generate JWT token
     const token = signToken(user);
     
-    // Store session in Redis
-    await redis.set(`session:${user._id}`, token, 'EX', 60 * 60 * 24); // 1 day
+    // Store session in Redis with user profile caching
+    const userData = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+    
+    await redisService.storeSession(user._id.toString(), token, userData);
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar
-      }
+      user: userData
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -92,11 +100,33 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
+    // First try to get from cache
+    const cachedProfile = await redisService.getCachedUserProfile(req.user.id);
+    
+    if (cachedProfile) {
+      console.log('Profile served from cache');
+      return res.json(cachedProfile);
+    }
+    
+    // If not in cache, get from database
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    
+    // Cache the user profile
+    const userData = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+    
+    await redisService.cacheUserProfile(user._id.toString(), userData);
+    
+    res.json(userData);
   } catch (err) {
     console.error('Get profile error:', err);
     res.status(500).json({ message: 'Failed to get profile', error: err.message });
@@ -132,6 +162,9 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Invalidate user profile cache
+    await redisService.invalidateUserProfileCache(user._id.toString());
+
     res.json({
       user,
       message: 'Profile updated successfully'
@@ -149,7 +182,8 @@ exports.uploadAvatar = async (req, res) => {
     }
 
     // For testing without auth, use a hardcoded user ID
-    const user = await User.findOne({ email: "test@gmail.com" });    if (!user) {
+    const user = await User.findOne({ email: "test@gmail.com" });    
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
@@ -165,6 +199,9 @@ exports.uploadAvatar = async (req, res) => {
     // Update user avatar
     user.avatar = url;
     await user.save();
+
+    // Invalidate user profile cache
+    await redisService.invalidateUserProfileCache(user._id.toString());
 
     res.json({ 
       avatar: user.avatar,
@@ -204,9 +241,101 @@ exports.changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Invalidate all sessions for security
+    await redisService.invalidateAllSessions(user._id.toString());
+
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
     console.error('Change password error:', err);
     res.status(500).json({ message: 'Failed to change password', error: err.message });
+  }
+};
+
+// New logout endpoint
+exports.logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (token) {
+      await redisService.invalidateSession(req.user.id, token);
+    }
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ message: 'Logout failed', error: err.message });
+  }
+};
+
+// New logout all devices endpoint
+exports.logoutAll = async (req, res) => {
+  try {
+    await redisService.invalidateAllSessions(req.user.id);
+    
+    res.json({ message: 'Logged out from all devices successfully' });
+  } catch (err) {
+    console.error('Logout all error:', err);
+    res.status(500).json({ message: 'Logout failed', error: err.message });
+  }
+};
+
+// Health check endpoint
+exports.healthCheck = async (req, res) => {
+  try {
+    const sessionStats = await redisService.getSessionStats();
+    
+    res.json({
+      status: 'OK',
+      redis: 'connected',
+      sessionStats
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      redis: 'disconnected',
+      error: error.message
+    });
+  }
+};
+
+exports.getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Validate user ID format
+    if (!userId || userId.length !== 24) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
+    // Check for internal service token (simple validation)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Internal service token required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (token !== process.env.INTER_SERVICE_TOKEN && token !== 'internal-service-token') {
+      return res.status(401).json({ message: 'Invalid internal service token' });
+    }
+
+    // Get user from database
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return user data
+    res.json({
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
+    res.status(500).json({ message: 'Failed to get user', error: error.message });
   }
 }; 

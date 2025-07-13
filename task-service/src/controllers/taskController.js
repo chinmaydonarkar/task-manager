@@ -4,6 +4,19 @@ const fs = require('fs');
 const emailService = require('../services/emailService');
 const { Parser } = require('json2csv');
 
+// Task update service for real-time updates
+let taskUpdateServiceInstance;
+
+const setTaskUpdateService = (service) => {
+  taskUpdateServiceInstance = service;
+};
+
+exports.setTaskUpdateService = setTaskUpdateService;
+
+exports.getTaskUpdateService = () => {
+  return taskUpdateServiceInstance;
+};
+
 exports.createTask = async (req, res) => {
   try {
     const { title, description, dueDate } = req.body;
@@ -59,7 +72,22 @@ exports.createTask = async (req, res) => {
       console.log('Email notification failed (non-blocking):', emailError.message);
       // Don't fail the task creation if email fails
     }
-    res.status(201).json(task);
+
+    // Broadcast real-time update if service is available
+    if (taskUpdateServiceInstance) {
+      try {
+        await taskUpdateServiceInstance.handleTaskCreated(task, req.user.id);
+      } catch (socketError) {
+        console.log('Real-time update failed (non-blocking):', socketError.message);
+        // Don't fail the task creation if real-time update fails
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      data: task,
+      message: 'Task created successfully'
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to create task', error: err.message });
   }
@@ -68,7 +96,11 @@ exports.createTask = async (req, res) => {
 exports.getTasks = async (req, res) => {
   try {
     const tasks = await Task.find({ user: req.user.id });
-    res.json(tasks);
+    res.json({
+      success: true,
+      data: tasks,
+      message: 'Tasks retrieved successfully'
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to get tasks', error: err.message });
   }
@@ -78,7 +110,11 @@ exports.getTask = async (req, res) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    res.json(task);
+    res.json({
+      success: true,
+      data: task,
+      message: 'Task retrieved successfully'
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to get task', error: err.message });
   }
@@ -96,6 +132,15 @@ exports.updateTask = async (req, res) => {
     if (req.body.dueDate !== undefined) updateData.dueDate = req.body.dueDate;
     
     console.log('Update data received:', updateData);
+    
+    // Get the current task to track status changes
+    const currentTask = await Task.findById(req.params.id);
+    if (!currentTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    
+    // Store previous status for comparison
+    const previousStatus = currentTask.status;
     
     const task = await Task.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
@@ -148,8 +193,26 @@ exports.updateTask = async (req, res) => {
       }
     }
     
+    // Broadcast real-time update if service is available and status changed
+    if (taskUpdateServiceInstance && previousStatus !== task.status) {
+      try {
+        await taskUpdateServiceInstance.handleTaskUpdate(
+          req.params.id,
+          { ...task.toObject(), previousStatus },
+          req.user.id
+        );
+      } catch (socketError) {
+        console.log('Real-time update failed (non-blocking):', socketError.message);
+        // Don't fail the task update if real-time update fails
+      }
+    }
+
     console.log('Updated task:', task);
-    res.json(task);
+    res.json({
+      success: true,
+      data: task,
+      message: 'Task updated successfully'
+    });
   } catch (err) {
     console.error('Update task error:', err);
     res.status(500).json({ message: 'Failed to update task', error: err.message });
@@ -160,7 +223,21 @@ exports.deleteTask = async (req, res) => {
   try {
     const task = await Task.findOneAndDelete({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    res.json({ message: 'Task deleted' });
+    
+    // Broadcast real-time update if service is available
+    if (taskUpdateServiceInstance) {
+      try {
+        await taskUpdateServiceInstance.handleTaskDeleted(req.params.id, req.user.id);
+      } catch (socketError) {
+        console.log('Real-time update failed (non-blocking):', socketError.message);
+        // Don't fail the task deletion if real-time update fails
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Task deleted successfully'
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete task', error: err.message });
   }

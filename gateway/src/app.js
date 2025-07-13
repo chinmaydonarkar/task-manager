@@ -141,16 +141,26 @@ const proxy = (serviceUrl, basePath) => async (req, res) => {
 // Public auth routes
 app.post('/api/auth/register', proxy(AUTH_SERVICE_URL, '/api/auth/register'));
 app.post('/api/auth/login', proxy(AUTH_SERVICE_URL, '/api/auth/login'));
+app.get('/api/auth/health', proxy(AUTH_SERVICE_URL, '/api/auth/health'));
 
 // Protected auth routes
+app.get('/api/auth/me', auth, proxy(AUTH_SERVICE_URL, '/api/auth/me'));
 app.get('/api/auth/profile', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile'));
 app.put('/api/auth/profile', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile'));
 app.post('/api/auth/profile/avatar', auth, upload.single('avatar'), proxy(AUTH_SERVICE_URL, '/api/auth/profile/avatar'));
 app.put('/api/auth/profile/password', auth, proxy(AUTH_SERVICE_URL, '/api/auth/profile/password'));
+app.post('/api/auth/logout', auth, proxy(AUTH_SERVICE_URL, '/api/auth/logout'));
+app.post('/api/auth/logout-all', auth, proxy(AUTH_SERVICE_URL, '/api/auth/logout-all'));
 
 // Proxy /api/tasks routes to task-service (all require auth)
 app.post('/api/tasks', auth, upload.array('files'), proxy(TASK_SERVICE_URL, '/api/tasks'));
 app.put('/api/tasks/:id', auth, upload.array('files'), proxy(TASK_SERVICE_URL, '/api/tasks'));
+
+// Cron job management endpoints (no auth required for internal monitoring)
+app.get('/api/tasks/cron/stats', proxy(TASK_SERVICE_URL, '/api/tasks/cron/stats'));
+app.post('/api/tasks/cron/trigger', proxy(TASK_SERVICE_URL, '/api/tasks/cron/trigger'));
+app.get('/api/tasks/cron/reminders/today', proxy(TASK_SERVICE_URL, '/api/tasks/cron/reminders/today'));
+
 app.use('/api/tasks', auth, proxy(TASK_SERVICE_URL, '/api/tasks'));
 
 module.exports = app; 

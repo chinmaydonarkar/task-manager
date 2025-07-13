@@ -103,7 +103,7 @@ export const TaskProvider = ({ children }) => {
     updateTask: handleUpdateTask,
     deleteTask: handleDeleteTask,
     downloadCSV: handleDownloadCSV,
-    reload: loadTasks,
+    refreshTasks: loadTasks,
   };
 
   return (
