@@ -6,7 +6,10 @@ export const registerAPI = async (form) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(form),
   });
-  if (!res.ok) throw new Error('Registration failed');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Registration failed');
+  }
   return await res.json();
 };
 
@@ -16,7 +19,10 @@ export const loginAPI = async (email, password) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) throw new Error('Login failed');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Login failed');
+  }
   return await res.json();
 };
 
@@ -33,13 +39,25 @@ export const getProfileAPI = async (token) => {
 };
 
 export const uploadAvatarAPI = async (formData, token) => {
-  const res = await fetch(`${API_BASE}/api/auth/profile/avatar`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData,
-  });
-  if (!res.ok) throw new Error('Avatar upload failed');
-  return await res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/profile/avatar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Avatar upload failed');
+    }
+    
+    const result = await res.json();
+    console.log('Avatar upload response:', result);
+    return result;
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    throw error;
+  }
 };
 
 export const updateProfileAPI = async (profileData, token) => {

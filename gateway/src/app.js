@@ -3,6 +3,7 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const axios = require('axios');
 const multer = require('multer');
+const path = require('path');
 const swaggerDocument = require('../swagger.json');
 require('dotenv').config();
 const auth = require('./middlewares/auth');
@@ -28,11 +29,20 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Static file serving for uploaded images
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(
+  '/uploads/avatars',
+  express.static(require('path').resolve(__dirname, '../../auth-service/uploads/avatars'))
+);
+
 // Swagger docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'Gateway running' }));
+
+
 
 // Service URLs from environment variables (for Docker/local flexibility)
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:5001';

@@ -3,7 +3,1090 @@
   "info": {
     "title": "Task Service API",
     "version": "1.0.0",
-    "description": "API for managing tasks"
+    "description": "Task Management Service API Documentation with Real-time Updates and Cron Jobs",
+    "contact": {
+      "name": "IndiaNIC Team",
+      "email": "support@indianic.com"
+    }
   },
-  "paths": {}
+  "servers": [
+    {
+      "url": "http://localhost:5002",
+      "description": "Development server"
+    },
+    {
+      "url": "http://localhost:5050/api/tasks",
+      "description": "Gateway proxy"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Task": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "In Progress", "Completed", "Cancelled"],
+            "description": "Task status"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task due date"
+          },
+          "user": {
+            "type": "string",
+            "description": "User ID who owns the task"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filename": {
+                  "type": "string"
+                },
+                "originalname": {
+                  "type": "string"
+                },
+                "mimetype": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Attached files"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateTaskRequest": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task due date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "In Progress", "Completed", "Cancelled"],
+            "default": "Pending",
+            "description": "Task status"
+          }
+        }
+      },
+      "UpdateTaskRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task due date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "In Progress", "Completed", "Cancelled"],
+            "description": "Task status"
+          }
+        }
+      },
+      "TaskResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Task"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TasksResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            }
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CronStats": {
+        "type": "object",
+        "properties": {
+          "isRunning": {
+            "type": "boolean"
+          },
+          "lastRun": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextRun": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalRuns": {
+            "type": "number"
+          },
+          "successfulRuns": {
+            "type": "number"
+          },
+          "failedRuns": {
+            "type": "number"
+          },
+          "lastError": {
+            "type": "string"
+          }
+        }
+      },
+      "CronHealth": {
+        "type": "object",
+        "properties": {
+          "schedulerStatus": {
+            "type": "string",
+            "enum": ["running", "stopped", "error"]
+          },
+          "lastExecution": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextExecution": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "executionStats": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "successful": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              }
+            }
+          },
+          "errorLog": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TodayReminders": {
+        "type": "object",
+        "properties": {
+          "usersWithTasks": {
+            "type": "number"
+          },
+          "totalTasks": {
+            "type": "number"
+          },
+          "tasksByUser": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        }
+      },
+      "SocketStats": {
+        "type": "object",
+        "properties": {
+          "connectedClients": {
+            "type": "number"
+          },
+          "activeRooms": {
+            "type": "number"
+          },
+          "totalMessages": {
+            "type": "number"
+          },
+          "uptime": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get all tasks for current user",
+        "description": "Retrieves all tasks belonging to the authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TasksResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Create a new task",
+        "description": "Creates a new task with optional file attachments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Task title"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Task description"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Task due date"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["Pending", "In Progress", "Completed", "Cancelled"],
+                    "default": "Pending",
+                    "description": "Task status"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Task attachments (PDF, DOCX, JPG)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required fields or invalid file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get a specific task",
+        "description": "Retrieves a specific task by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Tasks"],
+        "summary": "Update a task",
+        "description": "Updates an existing task with optional file attachments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Task title"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Task description"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Task due date"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["Pending", "In Progress", "Completed", "Cancelled"],
+                    "description": "Task status"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Task attachments (PDF, DOCX, JPG)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid data or file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Tasks"],
+        "summary": "Delete a task",
+        "description": "Deletes a specific task by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/export/csv": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Export tasks to CSV",
+        "description": "Exports all tasks for the current user to CSV format",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file generated successfully",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=tasks.csv"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/stats": {
+      "get": {
+        "tags": ["Cron Jobs"],
+        "summary": "Get cron job statistics",
+        "description": "Retrieves statistics about the cron job scheduler",
+        "responses": {
+          "200": {
+            "description": "Cron statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CronStats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/trigger": {
+      "post": {
+        "tags": ["Cron Jobs"],
+        "summary": "Manually trigger cron job",
+        "description": "Manually triggers the cron job to send reminder emails",
+        "responses": {
+          "200": {
+            "description": "Cron job triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/reminders/today": {
+      "get": {
+        "tags": ["Cron Jobs"],
+        "summary": "Get today's reminders",
+        "description": "Retrieves all tasks due today grouped by user",
+        "responses": {
+          "200": {
+            "description": "Today's reminders retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/TodayReminders"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/health": {
+      "get": {
+        "tags": ["Cron Jobs"],
+        "summary": "Get cron job health status",
+        "description": "Retrieves detailed health information about the cron job scheduler",
+        "responses": {
+          "200": {
+            "description": "Cron health status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CronHealth"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/start": {
+      "post": {
+        "tags": ["Cron Jobs"],
+        "summary": "Start cron job scheduler",
+        "description": "Starts the cron job scheduler if it's not already running",
+        "responses": {
+          "200": {
+            "description": "Cron job scheduler started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/cron/stop": {
+      "post": {
+        "tags": ["Cron Jobs"],
+        "summary": "Stop cron job scheduler",
+        "description": "Stops the cron job scheduler if it's running",
+        "responses": {
+          "200": {
+            "description": "Cron job scheduler stopped successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/socket/stats": {
+      "get": {
+        "tags": ["WebSocket"],
+        "summary": "Get WebSocket statistics",
+        "description": "Retrieves statistics about WebSocket connections and real-time updates",
+        "responses": {
+          "200": {
+            "description": "WebSocket statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SocketStats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "WebSocket service not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/socket/users/{taskId}": {
+      "get": {
+        "tags": ["WebSocket"],
+        "summary": "Get users in task room",
+        "description": "Retrieves information about users connected to a specific task room",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task room users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "taskId": {
+                          "type": "string"
+                        },
+                        "connectedUsers": {
+                          "type": "number"
+                        },
+                        "users": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "string"
+                              },
+                              "socketId": {
+                                "type": "string"
+                              },
+                              "connectedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "WebSocket service not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Tasks",
+      "description": "Task management operations"
+    },
+    {
+      "name": "Cron Jobs",
+      "description": "Scheduled job management and monitoring"
+    },
+    {
+      "name": "WebSocket",
+      "description": "Real-time communication and monitoring"
+    }
+  ]
 } 

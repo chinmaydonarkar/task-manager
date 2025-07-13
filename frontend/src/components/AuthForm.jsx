@@ -6,13 +6,22 @@ export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({ email: '', password: '', name: '' });
   const [localError, setLocalError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
+    setSuccessMessage('');
+    
     try {
-      if (isLogin) await login(form.email, form.password);
-      else await register(form);
+      if (isLogin) {
+        await login(form.email, form.password);
+      } else {
+        await register(form);
+        setSuccessMessage('Registration successful! Please login with your credentials.');
+        setIsLogin(true);
+        setForm({ email: form.email, password: '', name: '' }); // Keep email, clear password
+      }
     } catch (err) {
       setLocalError(err.message);
     }
@@ -69,11 +78,17 @@ export default function AuthForm() {
               autoComplete="current-password"
             />
           </div>
+          {successMessage && <div className="text-green-500 text-center font-medium">{successMessage}</div>}
           {(localError || error) && <div className="text-red-500 text-center font-medium">{localError || error}</div>}
           <button type="submit" className="w-full py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">{isLogin ? 'Login' : 'Register'}</button>
         </form>
         <div className="flex flex-col items-center gap-2">
-          <button type="button" onClick={() => setIsLogin(!isLogin)} className="w-full py-2 bg-gray-100 text-blue-600 font-semibold rounded-lg hover:bg-gray-200 transition">
+          <button type="button" onClick={() => {
+            setIsLogin(!isLogin);
+            setLocalError('');
+            setSuccessMessage('');
+            setForm({ email: '', password: '', name: '' });
+          }} className="w-full py-2 bg-gray-100 text-blue-600 font-semibold rounded-lg hover:bg-gray-200 transition">
             {isLogin ? 'Switch to Register' : 'Switch to Login'}
           </button>
         </div>

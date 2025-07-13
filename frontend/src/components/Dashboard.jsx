@@ -86,6 +86,10 @@ export default function Dashboard() {
   const { user, logout, uploadAvatar, updateProfile, changePassword } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
 
+  // Debug logging
+  console.log('Dashboard user state:', user);
+  console.log('User avatar:', user?.avatar);
+
   const handleLogout = () => {
     logout();
   };
@@ -169,9 +173,15 @@ export default function Dashboard() {
               <div className="flex items-center space-x-4 mb-6">
                 {user?.avatar ? (
                   <img
-                    src={user.avatar}
+                    src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5050${user.avatar}`}
                     alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                    onError={(e) => {
+                      console.error('Avatar image failed to load:', user.avatar);
+                      console.error('Full avatar URL:', user.avatar.startsWith('http') ? user.avatar : `http://localhost:5050${user.avatar}`);
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
                 ) : (
                   <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
@@ -180,6 +190,11 @@ export default function Dashboard() {
                     </span>
                   </div>
                 )}
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center hidden">
+                  <span className="text-white text-xl font-semibold">
+                    {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </span>
+                </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">{user?.name || 'User'}</h3>
                   <p className="text-gray-600">{user?.email}</p>
@@ -233,9 +248,15 @@ export default function Dashboard() {
                 <div className="flex items-center space-x-2">
                   {user?.avatar ? (
                     <img
-                      src={user.avatar}
+                      src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5050${user.avatar}`}
                       alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                      onError={(e) => {
+                        console.error('Avatar image failed to load:', user.avatar);
+                        console.error('Full avatar URL:', user.avatar.startsWith('http') ? user.avatar : `http://localhost:5050${user.avatar}`);
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
                   ) : (
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -244,6 +265,11 @@ export default function Dashboard() {
                       </span>
                     </div>
                   )}
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center hidden">
+                    <span className="text-white text-sm font-semibold">
+                      {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                    </span>
+                  </div>
                   <span className="text-sm text-gray-600">Welcome, {user?.name || user?.email}</span>
                 </div>
                 <button

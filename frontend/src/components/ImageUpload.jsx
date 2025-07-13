@@ -4,6 +4,7 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (event) => {
@@ -24,6 +25,7 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
     }
 
     setError('');
+    setSuccess('');
     
     // Create preview
     const reader = new FileReader();
@@ -41,14 +43,21 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
 
     setUploading(true);
     setError('');
+    setSuccess('');
 
     try {
       const formData = new FormData();
       formData.append('avatar', fileInputRef.current.files[0]);
 
       await onUpload(formData);
+      setSuccess('Avatar uploaded successfully!');
       setPreview(null);
       fileInputRef.current.value = '';
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
     } catch (err) {
       setError(err.message || 'Upload failed');
     } finally {
@@ -59,6 +68,7 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
   const handleCancel = () => {
     setPreview(null);
     setError('');
+    setSuccess('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -72,7 +82,10 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
           <img
             src={currentAvatar}
             alt="Current avatar"
-            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
           />
           <span className="text-sm text-gray-600">Current avatar</span>
         </div>
@@ -105,10 +118,15 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
             <img
               src={preview}
               alt="Preview"
-              className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
+              className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200 shadow-sm"
             />
           </div>
         </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="text-green-500 text-sm font-medium">{success}</div>
       )}
 
       {/* Error Message */}
@@ -122,9 +140,19 @@ export default function ImageUpload({ onUpload, currentAvatar, className = '' })
           <button
             onClick={handleUpload}
             disabled={uploading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
-            {uploading ? 'Uploading...' : 'Upload Avatar'}
+            {uploading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Uploading...
+              </>
+            ) : (
+              'Upload Avatar'
+            )}
           </button>
           <button
             onClick={handleCancel}

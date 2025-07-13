@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (form) => {
     setError('');
     await registerAPI(form);
+    // Don't set user and token - let user login manually after registration
   };
 
   const getProfile = async () => {
@@ -41,9 +42,10 @@ export const AuthProvider = ({ children }) => {
     if (!token) throw new Error('No authentication token');
     const result = await uploadAvatarAPI(formData, token);
     // Update user with new avatar
-    const updatedUser = { ...user, avatar: result.avatar };
+    const updatedUser = { ...user, avatar: result.user.avatar };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    console.log('Avatar uploaded, updated user:', updatedUser);
     return result;
   };
 

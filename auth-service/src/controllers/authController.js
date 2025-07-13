@@ -181,8 +181,8 @@ exports.uploadAvatar = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // For testing without auth, use a hardcoded user ID
-    const user = await User.findOne({ email: "test@gmail.com" });    
+    // Use the authenticated user from the request
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -204,7 +204,14 @@ exports.uploadAvatar = async (req, res) => {
     await redisService.invalidateUserProfileCache(user._id.toString());
 
     res.json({ 
-      avatar: user.avatar,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
       message: 'Avatar uploaded successfully'
     });
   } catch (err) {

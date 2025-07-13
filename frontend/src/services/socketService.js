@@ -15,7 +15,7 @@ class SocketService {
       this.disconnect();
     }
 
-    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+    const serverUrl = process.env.VITE_TASK_SERVICE_URL || 'http://localhost:5002';
     
     this.socket = io(serverUrl, {
       auth: { token },
