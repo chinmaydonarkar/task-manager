@@ -41,14 +41,19 @@ exports.createTask = async (req, res) => {
       await task.save();
     }
     
-    // Send email notification (for demo, use req.user.email or a placeholder)
+    // Send email notification for task creation
     try {
-      const to = req.user.email || 'demo@email.com';
-      await emailService.sendTaskNotification(
-        to,
-        'Task Created',
-        `Your task "${title}" has been created!`,
-        `<p>Your task <b>${title}</b> has been created!</p>`
+      const userEmail = req.user.email || req.user.id;
+      const userName = req.user.name || 'User';
+      
+      await emailService.sendTaskCreatedNotification(
+        userEmail,
+        userName,
+        {
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate
+        }
       );
     } catch (emailError) {
       console.log('Email notification failed (non-blocking):', emailError.message);
@@ -126,12 +131,16 @@ exports.updateTask = async (req, res) => {
     // Send email if status changed to completed
     if (updateData.status === 'Completed') {
       try {
-        const to = req.user.email || 'demo@email.com';
-        await emailService.sendTaskNotification(
-          to,
-          'Task Completed',
-          `Your task "${task.title}" is completed!`,
-          `<p>Your task <b>${task.title}</b> is completed!</p>`
+        const userEmail = req.user.email || req.user.id;
+        const userName = req.user.name || 'User';
+        
+        await emailService.sendTaskCompletedNotification(
+          userEmail,
+          userName,
+          {
+            title: task.title,
+            description: task.description
+          }
         );
       } catch (emailError) {
         console.log('Email notification failed (non-blocking):', emailError.message);
@@ -161,13 +170,26 @@ exports.exportTasksCSV = async (req, res) => {
   try {
     const tasks = await Task.find({ user: req.user.id }).lean();
     if (!tasks.length) return res.status(404).json({ message: 'No tasks found' });
-    const fields = ['title', 'description', 'status', 'dueDate', 'createdAt', 'updatedAt'];
+    
+    // Transform tasks to include Task ID and format dates
+    const transformedTasks = tasks.map(task => ({
+      'Task ID': task._id.toString(),
+      'Title': task.title,
+      'Status': task.status,
+      'Created Date': new Date(task.createdAt).toLocaleDateString(),
+      'Due Date': task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'
+    }));
+    
+    const fields = ['Task ID', 'Title', 'Status', 'Created Date', 'Due Date'];
     const parser = new Parser({ fields });
-    const csv = parser.parse(tasks);
+    const csv = parser.parse(transformedTasks);
+    
+    // Set headers for file download
     res.header('Content-Type', 'text/csv');
-    res.attachment('tasks.csv');
+    res.header('Content-Disposition', 'attachment; filename="tasks-report.csv"');
     return res.send(csv);
   } catch (err) {
+    console.error('CSV export error:', err);
     res.status(500).json({ message: 'Failed to export tasks', error: err.message });
   }
 }; 

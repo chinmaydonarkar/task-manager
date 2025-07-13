@@ -102,18 +102,31 @@ const proxy = (serviceUrl, basePath) => async (req, res) => {
     }
     
     console.log('Gateway: Forwarding to:', url);
+    
+    // Check if this is a CSV download request
+    const isCSVDownload = req.originalUrl.includes('/export/csv');
+    
     const response = await axios({ 
       url, 
       method, 
       headers, 
       data, 
-      responseType: 'json',
+      responseType: isCSVDownload ? 'arraybuffer' : 'json',
       validateStatus: function (status) {
         return status >= 200 && status < 500; // Accept all 2xx, 3xx, and 4xx status codes
       }
     });
     console.log('Gateway: Response status:', response.status);
-    res.status(response.status).json(response.data);
+    
+    // Handle CSV download response
+    if (isCSVDownload) {
+      // Forward the CSV headers
+      res.set('Content-Type', response.headers['content-type']);
+      res.set('Content-Disposition', response.headers['content-disposition']);
+      res.send(response.data);
+    } else {
+      res.status(response.status).json(response.data);
+    }
   } catch (err) {
     console.error('Gateway error:', err.message);
     if (err.response) {

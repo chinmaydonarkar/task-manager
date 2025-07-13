@@ -35,6 +35,8 @@ services:
     restart: always
     env_file:
       - ./task-service/.env
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:5001
     depends_on:
       - mongo
       - redis

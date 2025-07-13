@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchTasks, createTask, updateTask, deleteTask } from '../api/tasks';
+import { fetchTasks, createTask, updateTask, deleteTask, downloadTasksCSV } from '../api/tasks';
 import { useAuth } from './AuthContext';
 
 const TaskContext = createContext();
@@ -43,7 +43,7 @@ export const TaskProvider = ({ children }) => {
       const result = await createTask(task, token);
       console.log('Task created:', result);
       
-      // Immediately add the new task to the state
+      // Immediately add the new task to the state without loading
       setTasks(prevTasks => [result, ...prevTasks]);
       
     } catch (err) {
@@ -84,6 +84,17 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    try {
+      console.log('Downloading CSV...');
+      await downloadTasksCSV(token);
+      console.log('CSV download successful');
+    } catch (err) {
+      console.error('Error downloading CSV:', err);
+      throw err;
+    }
+  };
+
   const value = {
     tasks,
     loading,
@@ -91,6 +102,7 @@ export const TaskProvider = ({ children }) => {
     createTask: handleCreateTask,
     updateTask: handleUpdateTask,
     deleteTask: handleDeleteTask,
+    downloadCSV: handleDownloadCSV,
     reload: loadTasks,
   };
 

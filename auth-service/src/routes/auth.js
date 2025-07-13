@@ -9,6 +9,7 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 
 // Protected routes
+router.get('/me', auth, authController.getProfile);
 router.get('/profile', auth, authController.getProfile);
 router.put('/profile', auth, authController.updateProfile);
 router.post('/profile/avatar',auth, uploadAvatar, handleUploadError, authController.uploadAvatar);

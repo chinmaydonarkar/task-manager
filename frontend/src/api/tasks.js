@@ -84,3 +84,40 @@ export const deleteTask = async (id, token) => {
   console.log('Delete task response data:', data);
   return data;
 };
+
+export const downloadTasksCSV = async (token) => {
+  console.log('Downloading tasks CSV...');
+  const res = await fetch(`${API_BASE}/api/tasks/export/csv`, {
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+  });
+  console.log('Download CSV response status:', res.status);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('Download CSV error:', errorText);
+    throw new Error('Download CSV failed');
+  }
+  
+  // Get the blob from the response
+  const blob = await res.blob();
+  
+  // Create a download link
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = 'tasks-report.csv';
+  
+  // Trigger the download
+  document.body.appendChild(a);
+  a.click();
+  
+  // Clean up
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  
+  console.log('CSV download completed');
+};
